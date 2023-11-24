@@ -76,3 +76,49 @@ public async Task<ActionResult<IEnumerable<FormasPago>>> GetFormasPago()
     var entity = await _unitOfWork.Pagos.GetFormasPago();
     return _mapper.Map<List<FormasPago>>(entity);
 }
+```
+
+Devuelve el nombre de los clientes que hayan hecho pagos y el nombre de sus representantes junto con la ciudad de la oficina a la que pertenece el representante
+
+```
+ClientesPagosRepresentantes/Queries/Entities/Domain
+public class ClientesPagosRepresentantes
+    {
+        public string NombreCliente { get; set; }
+        public string NombreRepresentante { get; set; }
+        public string CiudadOficina { get; set; }
+    }
+
+ICliente/Interfaces/Domain
+Task<IEnumerable<ClientesPagosRepresentantes>> GetClientesPagosRepresentantes();
+
+ClienteRepository/Repositories/Application
+public  async Task<IEnumerable<ClientesPagosRepresentantes>> GetClientesPagosRepresentantes()
+{
+    return await(from cliente in _context.Clientes
+                 join Pago in _context.Pagos
+                 on cliente.CodigoCliente equals Pago.CodigoCliente
+                 join representante in _context.Empleados
+                 on cliente.CodigoEmpleadoRepVentas equals representante.CodigoEmpleado
+                 join oficina in _context.Oficinas
+                 on representante.CodigoOficina equals oficina.CodigoOficina
+                 select new ClientesPagosRepresentantes
+                 {
+                    NombreCliente = cliente.NombreCliente,
+                    NombreRepresentante = representante.Nombre,
+                    CiudadOficina = oficina.Ciudad
+                 }
+    ).ToListAsync();
+}
+
+ClienteController/Controllers/API
+[HttpGet("ClientesPagosRepresentantes")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+public async Task<ActionResult<IEnumerable<ClientesPagosRepresentantes>>> GetClientesPagosRepresentantes()
+{
+    var clientes = await _unitOfWork.Clientes.GetClientesPagosRepresentantes();
+    return _mapper.Map<List<ClientesPagosRepresentantes>>(clientes);
+}
+
+```
