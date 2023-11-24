@@ -39,4 +39,40 @@ public async Task<ActionResult<IEnumerable<Pagos2008Paypal>>> GetPagos2008Paypal
     var entity = await _unitOfWork.Pagos.GetPagos2008Paypal();
     return _mapper.Map<List<Pagos2008Paypal>>(entity);
 }
+```
 
+Devuelve un listado con todas las formas de pago que aparecen en la tabla pago.Tenga en cuenta que no deben aparecer formas de pago repetidas.
+
+```
+FormasPago/Queries/Entities/Domain
+public class FormasPago
+{
+    public string FormaPago { get; set; } = null!;
+}
+
+IPago/Interfaces/Domain
+Task<IEnumerable<FormasPago>> GetFormasPago();
+
+PagoRepository/Repositories/Application
+public async Task<IEnumerable<FormasPago>> GetFormasPago()
+{
+    var resultados = await _context.Pagos
+        .GroupBy(pago => pago.FormaPago)
+        .Select(groupPagos => new FormasPago
+        {
+            FormaPago = groupPagos.Key
+        })
+        .ToListAsync();
+
+    return resultados.DistinctBy(dto => dto.FormaPago);
+}
+
+PagoController/Controllers/API
+[HttpGet("FormasPago")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+public async Task<ActionResult<IEnumerable<FormasPago>>> GetFormasPago()
+{
+    var entity = await _unitOfWork.Pagos.GetFormasPago();
+    return _mapper.Map<List<FormasPago>>(entity);
+}
