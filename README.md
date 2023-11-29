@@ -171,3 +171,52 @@ public async Task<ActionResult<IEnumerable<JerarquiaEmpleados>>> GetJerarquiaEmp
 }
 
 ```
+
+Devuelve un listado de los productos que nunca han aparecido en un pedido.El resultado debe mostrar el nombre,la descripcion y la imagen del producto.
+
+```
+
+ProductosSinPedido/Queries/Entities/Domain
+public class ProductosSinPedidos
+{
+        public string CodigoProducto { get; set; } = null!;
+        public string Nombre { get; set; } = null!;
+        public string? Descripcion { get; set; }
+        public string Imagen { get; set; }
+}
+
+IProducto/Interfaces/Domain
+Task<IEnumerable<ProductosSinPedidos>> GetProductosSinPedidos();
+
+ProductoRepository/Repositories/Application
+public async Task<IEnumerable<ProductosSinPedidos>> GetProductosSinPedidos()
+{
+    return await (
+        from producto in _context.Productos
+        join Gama in _context.GamaProductos
+        on producto.Gama equals Gama.Gama
+        where !_context.DetallePedidos.Any(detalle => detalle.CodigoProducto == producto.CodigoProducto)
+        select new ProductosSinPedidos
+        {
+            CodigoProducto = producto.CodigoProducto,
+            Nombre = producto.Nombre,
+            Descripcion = producto.Descripcion,
+            Imagen = Gama.Imagen
+        }
+    ).ToListAsync();
+}
+
+ProductoController/Controllers/API
+[HttpGet("ProductosSinPedidos")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+public async Task<ActionResult<IEnumerable<ProductosSinPedidos>>> ProductosSinPedidos()
+{
+  var productos = await _unitOfWork.Productos.GetProductosSinPedidos();
+  return _mapper.Map<List<ProductosSinPedidos>>(productos);
+}
+
+```
+
+```
+```
